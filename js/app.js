@@ -83,7 +83,7 @@ var app = new Vue({
                     'width': 80,'elementHandlers': elementHandler
                 }
             );
-            doc.output('datauri');
+            doc.save(this.title + '.pdf');
         }
     }
 });
