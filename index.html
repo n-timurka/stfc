@@ -5,180 +5,47 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 
-        <!-- Bootstrap CSS -->
         <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
-        <style>
-            * {
-                transition: all .5s ease;
-            }
-            head, [contenteditable] {
-                display: block;
-            }
-            p {
-                text-indent: 1em;
-            }
-            #summary {
-                position:fixed;
-                left: 0;
-            }
-            #menu {
-                position:fixed;
-                right: 0;
-            }
-            body {
-                counter-reset: itemCounter;
-            }
-            .item-wrapper-title:before {
-                counter-increment: itemCounter +1;
-                content: counter(itemCounter) ". ";
-            }
-        </style>
-
-        <title>Hello, world!</title>
+        <link rel="stylesheet" href="style.css">
+        <title>Document PDF saver</title>
     </head>
     <body>
-        <div class="container" id="content">
+        <div class="container" id="app">           
             <nav id="summary" class="navbar navbar-light bg-light flex-column">
-                <span class="navbar-brand">Оглавление:</span>
+                <span class="navbar-brand">Contents:</span>
                 <nav class="nav nav-pills flex-column">
-                    <a v-for="(item, index) in items" class="nav-link" v-on:click="scrollTo(index, $event)" :href="'#item' + index">{{ index + 1 }}. {{ item.title }}</a>
+                    <a v-for="(item, index) in items" class="nav-link" v-on:click.prevent="scrollTo(index)" href="">{{ index + 1 }}. {{ item.title }}</a>
                 </nav>
-                <a class="btn btn-link text-success" id="add_item" v-on:click="addItem()">Добавить</a>
+                <a class="btn btn-link text-success" id="add_item" v-on:click="addItem">Add item</a>
             </nav>
             <nav id="menu" class="navbar navbar-light bg-light flex-column">
-                <a class="btn btn-success btn-warning" v-on:click="addItem()">Предпросмотр</a>
-                <a class="btn btn-success btn-success" v-on:click="addItem()">Опубликовать</a>
-                <a class="btn btn-light btn-sm" v-on:click="saveDoc()">Сохранить в docx</a>
-                <a class="btn btn-light btn-sm" v-on:click="savePdf()">Сохранить в pdf</a>
+                <div class="alert alert-success notify-block" role="alert" v-bind:class="{active: message}">{{ message }}</div>
+                <a class="btn btn-success btn-warning" v-on:click="saveData">Save</a>
+                <a class="btn btn-light btn-sm" v-on:click="saveHtml">Save into html</a>
+                <a class="btn btn-light btn-sm" v-on:click="savePdf">Save into pdf</a>
+                <hr/>
+                <a class="text-danger" v-on:click="clearData" href="">Clear</a>
             </nav>
             <div class="row mb-4 bg-default">
-                <h1 class="col text-center" contenteditable>{{ title }}</h1>
+                <h1 class="col text-center" id="page_title" contenteditable>{{ title }}</h1>
             </div>
             <div class="row">
                 <div class="col">
                     <div class="item-wrapper" v-for="(item, index) in items">
                         <h2 class="item-wrapper-title" :id="'item' + index" contenteditable>{{ item.title }}</h2>
                         <div class="item-wrapper-text" v-html="item.text"></div>
-                        <div class="alert alert-secondary">
-                            <button class="btn btn-info" v-on:click="addParagraph(index)">Параграф</button>
-                            <button class="btn btn-info" v-on:click="addTable(index)">Таблица</button>
-                            <button class="btn btn-info" data-toggle="modal" data-target="#imageModal">Картинка</button>
-                            <button class="btn btn-danger" v-on:click="deleteItem(index)">Удалить</button>
+                        <div class="alert alert-secondary item-menu">
+                            <button class="btn btn-info" v-on:click="addParagraph(index)">New paragraph</button>
+                            <button class="btn btn-danger" v-on:click="deleteItem(index)">Remove</button>
                         </div>
                     </div>
                 </div>
-            </div>
-            <div class="modal fade" id="imageModal" tabindex="-1" role="dialog" aria-hidden="true">
-                <div class="modal-dialog" role="document">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title" id="exampleModalLabel">Modal title</h5>
-                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                                <span aria-hidden="true">&times;</span>
-                            </button>
-                        </div>
-                        <div class="modal-body">
-                            <div class="form-group">
-                                <label>Ссылка на файл</label>
-                                <input type="text" class="form-control" v-model="image_url">
-                                <small id="emailHelp" class="form-text text-muted">Введите ссылку на файл или загрузите его вручную.</small>
-                            </div>
-                            <div class="custom-file">
-                                <input type="file" class="custom-file-input" id="customFile">
-                                <label class="custom-file-label" for="customFile">Choose file</label>
-                            </div>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Отменить</button>
-                            <button type="button" class="btn btn-primary" v-on:click="addImage(0)">Опубликовать</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            </div>           
         </div>        
-        <!-- Optional JavaScript -->
-        <!-- jQuery first, then Popper.js, then Bootstrap JS -->
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
-        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
+
         <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.5.13/vue.min.js"></script>
-        <script>
-var app = new Vue({
-    el: '#content',
-    data: {
-        title: "Тех. аудит для сайта test.com",
-        items: [],
-        timer: '',
-        image_url: ''
-    },
-    created: function () {
-        this.getData();
-        this.timer = setInterval(this.updateFields, 3000);
-    },
-    updated: function () {
-        this.autoSave();
-    },
-    methods: {
-        updateFields: function () {
-            var self = this;
-            self.title = $("h1").html();
-            $(".item-wrapper-title").each(function (index) {
-                self.items[index].title = $(this).html();
-            });
-            $(".item-wrapper-text").each(function (index) {
-                self.items[index].text = $(this).html();
-            });
-            console.log("autosave");
-        },
-        autoSave: function () {
-            $.post("save.php", {title: this.title, data: this.items});
-        },
-        getData: function () {
-            var self = this;
-            $.getJSON("audit.json", function (data) {
-                self.items = data.data;
-                self.title = data.title;
-            });
-        },
-        deleteItem: function (index) {
-            this.items.splice(index, 1);
-        },
-        addItem: function () {
-            this.items.push({
-                'title': 'Новый параграф',
-                'text': '<p contenteditable>Новый текст параграфа</p>'
-            });
-        },
-        addParagraph(index) {
-            this.items[index].text = this.items[index].text + '<p contenteditable>Новый параграф</p>';
-        },
-        addTable(index) {
-            this.items[index].text = this.items[index].text + '<table class="table"><tbody><tr><td><span contenteditable>Новый параграф</span></td><td><span contenteditable>Новый параграф</span></td><td><span contenteditable>Новый параграф</span></td></tr></tbody></table>';
-        },
-        addImage(index) {
-            if (this.image_url != "") {
-                this.items[index].text = this.items[index].text + '<image class="img-fluid" src="' + this.image_url + '"/>';
-                this.image_url = '';
-            }
-            $('#imageModal').modal('hide');
-        },
-        scrollTo(index, event) {
-            if (event)
-                event.preventDefault()
-            $('html, body').animate({
-                scrollTop: ($('#item' + index).offset().top)
-            }, 500);
-        },
-        saveDoc() {
-            alert("Function isn't ready yet");
-        },
-        savePdf() {
-            alert("Function isn't ready yet");
-        }
-    },
-    beforeDestroy() {
-        clearInterval(this.timer)
-    }
-});
-        </script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/vue-resource/1.5.1/vue-resource.js"></script>
+        <script src="https://unpkg.com/jspdf@latest/dist/jspdf.min.js"></script>
+        <script src="js/app.js"></script>
     </body>
 </html>
